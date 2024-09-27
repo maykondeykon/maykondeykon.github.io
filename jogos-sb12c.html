@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogos Núcleo Sport Rio Maior 'C'</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogos Núcleo Sport. Rio Maior 'C'</h1>
+    <table id="resultados">
+        <thead>
+            <tr>
+                <th>Data/Hora</th>
+                <th>Estádio</th>
+                <th>Time da Casa</th>
+                <th>Time Visitante</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os resultados serão inseridos aqui -->
+        </tbody>
+    </table>
+
+    <script>
+        // Sua API Key do ScraperAPI
+        const apiKey = '0de904233a7162ed93ed6245f8b6bfce'; // Substitua pela sua chave da ScraperAPI
+
+        // URL base do ScraperAPI com a chave
+        const corsProxy = `http://api.scraperapi.com?api_key=${apiKey}&url=`;
+
+        // Função para buscar os dados da partida
+        async function fetchData(fixtureId) {
+            const url = `${corsProxy}${encodeURIComponent('https://resultados.fpf.pt/Competition/GetClassificationAndMatchesByFixture?fixtureId=' + fixtureId)}`;
+            
+            try {
+                // Faz a requisição à URL via ScraperAPI
+                const response = await fetch(url);
+                const htmlText = await response.text();
+                
+                // Parseia o HTML recebido
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                // Encontra a div com o id "matches"
+                const matchesElement = doc.getElementById("matches");
+                
+                if (matchesElement) {
+                    // Itera sobre cada div com a classe "game"
+                    const gameElements = matchesElement.getElementsByClassName("game");
+                    for (let game of gameElements) {
+                        // Verifica se o texto "Núcleo Sport. Rio Maior 'C'" está presente no jogo
+                        if (game.textContent.includes("Núcleo Sport. Rio Maior 'C'")) {
+                            
+                            // Extrai a data/hora e substitui os múltiplos espaços por " às "
+                            const timeElement = game.querySelector("span.game-schedule");
+                            let gameTime = timeElement ? timeElement.textContent.trim() : "N/A";
+                            gameTime = gameTime.replace(/\s{2,}/g, ' às ');  // Substitui múltiplos espaços
+                            
+                            // Encontra a próxima div com a classe "game-list-stadium" e extrai o local do jogo
+                            const nextSibling = game.nextElementSibling;
+                            let stadium = "N/A";
+                            if (nextSibling && nextSibling.classList.contains("game-list-stadium")) {
+                                const stadiumElement = nextSibling.querySelector("small");
+                                if (stadiumElement) {
+                                    stadium = stadiumElement.textContent.trim();
+                                }
+                            }
+                            
+                            // Extrai os times (casa e visitante)
+                            const homeTeamElement = game.querySelector(".home-team");
+                            const awayTeamElement = game.querySelector(".away-team");
+                            const homeTeam = homeTeamElement ? homeTeamElement.textContent.trim() : "N/A";
+                            const awayTeam = awayTeamElement ? awayTeamElement.textContent.trim() : "N/A";
+                            
+                            // Adiciona os detalhes do jogo à tabela
+                            const tableBody = document.querySelector('#resultados tbody');
+                            const newRow = document.createElement('tr');
+                            newRow.innerHTML = `
+                                <td>${gameTime}</td>
+                                <td>${stadium}</td>
+                                <td>${homeTeam}</td>
+                                <td>${awayTeam}</td>
+                            `;
+                            tableBody.appendChild(newRow);
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`Erro ao buscar dados para fixtureId ${fixtureId}:`, error);
+            }
+        }
+
+        // Função principal para iterar sobre os fixtureIds
+        async function main() {
+            const fixtureIds = Array.from({length: 10}, (_, i) => 555669 + i);  // Array com fixtureIds de 555669 até 555678
+            for (let fixtureId of fixtureIds) {
+                await fetchData(fixtureId);
+            }
+        }
+
+        // Executa o script ao carregar a página
+        main();
+    </script>
+</body>
+</html>
